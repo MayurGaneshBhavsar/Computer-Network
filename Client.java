@@ -1,76 +1,55 @@
-//UDP MultiUser Chat
-//Client.java
+
+//UDP peer to peer
+//client.java
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.MulticastSocket;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 
-public class Client implements Runnable {
-    static MulticastSocket clientSocket;
-    static byte[] recvData = new byte[1024];
-    static String getsen = "hmmm";
-    static boolean send_flag = false;
+public class Client {
+
+    public final static int PORT = 8778;
+    public final static String SERVER_IP = "127.0.0.1";
 
     public static void main(String[] args) {
-        // TODO Auto-generated method stub
-        BufferedReader br;
+        BufferedReader br = null;
+        DatagramSocket socket = null;
+        String s;
         try {
-            clientSocket = new MulticastSocket(4447);
-            InetAddress group = InetAddress.getByName("230.0.0.0");
-            InetAddress IPAddr = InetAddress.getByName("localhost");
-            clientSocket.joinGroup(group);
-            byte[] sendData = new byte[1024];
-            String sentence = null;
-            new Thread(new Client()).start();
-            // SEND DATA
+
+            socket = new DatagramSocket();
+            br = new BufferedReader(new InputStreamReader(System.in));
+
+            InetAddress server = InetAddress.getByName(SERVER_IP);
+            System.out.println("Client Socket Created.\nENter msg:");
             while (true) {
-                sentence = null;
-                br = new BufferedReader(new InputStreamReader(System.in));
-                sentence = br.readLine();
-                sendData = new byte[1024];
-                sendData = sentence.getBytes();
-                DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddr, 9877);
-                clientSocket.send(sendPacket);
-                send_flag = true;
+                System.out.print(">");
+                s = br.readLine();
+                byte[] sendMsg = s.getBytes();
+
+                DatagramPacket sendingPacket = new DatagramPacket(sendMsg, sendMsg.length, server, PORT);
+                socket.send(sendingPacket);
+                System.out.println("Waiting for reply.");
+
+                byte[] replyMsg = new byte[1000];
+
+                DatagramPacket receivingPacket = new DatagramPacket(replyMsg, replyMsg.length);
+                socket.receive(receivingPacket);
+                byte[] data = receivingPacket.getData();
+                String s1 = new String(data, 0, data.length);
+                System.out.println(
+                        receivingPacket.getAddress().getHostAddress() + ":" + receivingPacket.getPort() + "=> " + s1);
+
+                if (s1.equalsIgnoreCase("bye")) {
+                    System.out.println("Connection Closed");
+                    break;
+                }
+
             }
-
-        } catch (SocketException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (UnknownHostException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-    }
-
-    @Override
-    // READ FROM SERVER
-    public void run() {
-        // TODO Auto-generated method stub
-        DatagramPacket recvPacket;
-        while (!getsen.equals("Bye")) {
-            try {
-                recvPacket = new DatagramPacket(recvData, recvData.length);
-                clientSocket.receive(recvPacket);
-                getsen = new String(recvPacket.getData());
-                if (send_flag != true)
-                    System.out.println("BROADCASTED MESSAGE:" + getsen);
-                getsen = " ";
-                send_flag = false;
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-
+            socket.close();
+        } catch (Exception e) {
+            // TODO: handle exception
         }
     }
-
 }
